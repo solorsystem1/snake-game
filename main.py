@@ -41,8 +41,8 @@ class MyApp(QWidget):
         self.setGeometry(200, 200, 1000, 800)
         self.setWindowTitle('snake')
         self.view=View()
-        self.sld = QSlider(Qt.Horizontal,self)
-        self.sld.setRange(-180,180)
+        #self.sld = QSlider(Qt.Horizontal,self)
+        #self.sld.setRange(-180,180)
 
         #frame 분할
 
@@ -58,11 +58,11 @@ class MyApp(QWidget):
         self.score_label.setFont(QFont("맑은고딕",40))
         self.score_label.setStyleSheet("Color: green")
         vbox_1.addWidget(self.score_label)
-        vbox_1.addWidget(QPushButton())
+        #vbox_1.addWidget(QPushButton())
 
         vbox_2=QVBoxLayout()
         vbox_2.addWidget(self.view)
-        vbox_2.addWidget(self.sld)
+        #vbox_2.addWidget(self.sld)
 
         frame_1.setLayout(vbox_1)
         frame_2.setLayout(vbox_2)
