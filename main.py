@@ -4,6 +4,7 @@ from PyQt5.QtGui import *
 import random
 import copy
 import sys
+from neural import Neural
 
 class Rectangle(QGraphicsRectItem):
     def __init__(self,x,y,w,h):
@@ -57,8 +58,17 @@ class MyApp(QWidget):
         self.score_label=QLabel(f"Score\n0")
         self.score_label.setFont(QFont("맑은고딕",40))
         self.score_label.setStyleSheet("Color: green")
+
+        self.remain_label = QLabel(f"남은 움직임\n300")
+        self.remain_label.setFont(QFont("맑은고딕", 20))
+        self.remain_label.setStyleSheet("Color: black")
+
         vbox_1.addWidget(self.score_label)
-        #vbox_1.addWidget(QPushButton())
+        vbox_1.addWidget(self.remain_label)
+
+        btnTest=QPushButton("test")
+        btnTest.clicked.connect(self.btn_clicked)
+        vbox_1.addWidget(btnTest)
 
         vbox_2=QVBoxLayout()
         vbox_2.addWidget(self.view)
@@ -116,8 +126,20 @@ class MyApp(QWidget):
         if self.flag==0:
             self.clear()
 
+    def btn_clicked(self):
+        self.ne=Neural()
+        #print(self.state)
+        #self.ne.init_make_model(self.que,self.remain_move,self.target,self.len)
+        self.ne.genetic_algorithm(30)
+
     def lose_check(self):
-        if self.now[0]+self.dir[0]<0 or self.now[0]+self.dir[0]>=20 or self.now[1]+self.dir[1]<0 or self.now[1]+self.dir[1]>=20: #맵밖으로 나감
+        self.remain_move-=1
+        self.remain_label.setText(f"남은 움직임\n{self.remain_move}")
+
+        if self.remain_move==0 : #남은 움직임이 없을 때
+            self.lose_game()
+
+        elif self.now[0]+self.dir[0]<0 or self.now[0]+self.dir[0]>=20 or self.now[1]+self.dir[1]<0 or self.now[1]+self.dir[1]>=20: #맵밖으로 나감
             self.lose_game()
 
         elif self.state[self.now[0]+self.dir[0]][self.now[1]+self.dir[1]]==1: # 자기자신에 부딪힘
@@ -125,6 +147,8 @@ class MyApp(QWidget):
 
         elif self.now[0]+self.dir[0] == self.target[0] and self.now[1]+self.dir[1] == self.target[1]: #target에 도착
             self.len+=1
+            self.remain_move=300
+            self.remain_label.setText("남은 움직임\n300")
             self.score_update(100)
             self.state[self.now[0] + self.dir[0]][self.now[1] + self.dir[1]] = 1
             while self.state[self.target[0]][self.target[1]] != 0:
@@ -141,16 +165,18 @@ class MyApp(QWidget):
         reply = QMessageBox.question(self, '패배했습니다', '재도전하시겠습니까?', QMessageBox.Yes)
         if reply == QMessageBox.Yes:
             self.flag = 0
+        self.remain_label.setText("남은 움직임\n300")
         self.score_label.setText('Score\n0')
 
     def clear(self):
         self.now=[random.randrange(0,20),random.randrange(0,20)]
         self.que=[[0,0]]
-        self.len=5
+        self.len=2
         self.dir=[0,0]
         self.state=[]
         self.flag=1
         self.score=0
+        self.remain_move=300
         self.target=[random.randrange(0,20),random.randrange(0,20)]
 
         for i in range(20):
