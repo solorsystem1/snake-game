@@ -2,26 +2,32 @@ import tensorflow as tf
 import numpy as np
 import random
 import copy
+import datetime
 
 class Neural():
     def __init__(self):
         self.K=30
-        self.N=10
+        self.N=7
+        self.input_node=6
+        self.hidden_node=48
+        self.output_node=3
         self.model= tf.keras.models.Sequential([
-            tf.keras.layers.InputLayer(402),
-            tf.keras.layers.Dense(512,activation=tf.nn.relu),
-            tf.keras.layers.Dense(4,activation=tf.nn.sigmoid)
+            tf.keras.layers.InputLayer(self.input_node),
+            tf.keras.layers.Dense(self.hidden_node,activation=tf.nn.relu),
+            tf.keras.layers.Dense(self.output_node,activation=tf.nn.sigmoid)
         ])
 
     def fitting_function(self,weights): #가상으로 게임을 한번 돌려서 score값 구함
         # 처음 생성
+
         now = [random.randrange(0, 20), random.randrange(0, 20)]
         que = [[0, 0]]
         length = 2
-        dir = [0, 0]
+        dir = np.array([1, 0])
         state = []
         score = 0
         remain_move = 300
+        additional=0
         target = [random.randrange(0, 20), random.randrange(0, 20)]
 
         for i in range(20):
@@ -37,69 +43,153 @@ class Neural():
         #반복
         while 1:
             # 모델 가져오기
-            pred=self.predict_model(weights,que,remain_move,target,length)[0]
-            if np.argmax(pred)==1:
-                dir=[0,1]
-            elif np.argmax(pred) == 2:
-                dir = [0, -1]
-            elif np.argmax(pred) == 3:
-                dir = [1, 0]
-            elif np.argmax(pred) == 4:
-                dir = [-1, 0]
 
+            pred=self.predict_model(weights,now,state,target,dir)[0]
+
+            if np.argmax(pred)==0:
+                dir = np.array(dir)@np.array([[0,-1],[1,0]])
+            elif np.argmax(pred) == 1:
+                dir = np.array(dir) @ np.array([[0, 1], [-1, 0]])
+
+            '''
+            if np.argmax(pred)==0:
+                dir=[0,1]
+            elif np.argmax(pred)==1:
+                dir=[0,-1]
+            elif np.argmax(pred)==2:
+                dir=[1,0]
+            elif np.argmax(pred)==3:
+                dir=[-1,0]
+            '''
+
+            if dir[0]*(target[0]-now[0])<0 or dir[1]*(target[1]-now[1])<0:
+                additional-=0.5
+
+            else :
+                additional+=0.25
+
+            #print(np.argmax(pred))
             remain_move-=1
             if remain_move == 0:  # 남은 움직임이 없을 때
-                return score+(300-remain_move)/1000
+                #score값 + 생존 횟수 +
+                #return max(score+(300-remain_move)/500+(40-(abs(now[0]-target[0])+abs(now[1]-target[1])))/40+additional,0)
+
+                #return max(score + (300 - remain_move) / 500 + additional+(40-(abs(now[0]-target[0])+abs(now[1]-target[1])))/40, 0.0001)
+                return max(score+additional,0.0001)
             elif now[0] + dir[0] < 0 or now[0] + dir[0] >= 20 or now[1] + dir[1] < 0 or \
                     now[1] + dir[1] >= 20:  # 맵밖으로 나감
-                return score+(300-remain_move)/1000
+                return max(score + additional, 0.0001)
+                #return max(score + (300 - remain_move) / 500 + additional+(40-(abs(now[0]-target[0])+abs(now[1]-target[1])))/40, 0.0001)
             elif state[now[0] + dir[0]][now[1] + dir[1]] == 1:  # 자기자신에 부딪힘
-                return score+(300-remain_move)/1000
+                return max(score + additional, 0.0001)
+                #return max(score + (300 - remain_move) / 500 + additional+(40-(abs(now[0]-target[0])+abs(now[1]-target[1])))/40, 0.0001)
             elif now[0] + dir[0] == target[0] and now[1] + dir[1] == target[1]:  # target에 도착
+
                 length += 1
                 remain_move = 300
-                score+=1
+                score+=15
                 state[now[0] + dir[0]][now[1] + dir[1]] = 1
                 while state[target[0]][target[1]] != 0:
                     target = [random.randrange(0, 20), random.randrange(0, 20)]
             else :
                 state[now[0]+dir[0]][now[1]+dir[1]] = 1
 
-    def refine_input(self,que,remain_move,target,length):
-        ary=np.zeros(402)
+            now[0]=now[0]+dir[0]
+            now[1]=now[1]+dir[1]
+            que.append(copy.deepcopy(now))
 
-        for i in range(len(que)):
-            ary[que[i][0] + 20 * que[i][1]] = i
+            if len(que) > length:
+                state[que[0][0]][que[0][1]] = 0
+                que.pop(0)
 
-        ary[target[0] + 20 * target[1]]=400
 
-        ary[400]=remain_move
-        ary[401]=length
+    def refine_input(self,now,state,target,dir):
+        # 위 아래 오른쪽 왼쪽 ->장애물 5칸씩 확인 0.2,0.4,0.6,0.8,1 (4개 node)
+        # target 위치 사분면으로 표시 0,1값들 (4개 node)
 
-        ary=ary/400
+        ary=np.zeros(self.input_node)
+        right=dir@np.array([[0,-1],[1,0]])
+        left=dir@np.array([[0,1],[-1,0]])
+
+        #print(state[now[0]+5*dir[0]][now[1]+5*dir[1]])
+        for i in range(1,6):
+            if now[1]+i*dir[1]>=20 or now[1]+i*dir[1]<0 or now[0]+i*dir[0]>=20 or now[0]+i*dir[0]<0:
+                ary[0]=1-(i-1)*0.2
+                break
+            elif state[now[0]+i*dir[0]][now[1]+i*dir[1]]==1:
+                ary[0]=1-(i-1)*0.2
+                break
+
+
+        for i in range(1,6):
+            if now[1]+i*right[1]>=20 or now[1]+i*right[1]<0 or now[0]+i*right[0]>=20 or now[0]+i*right[0]<0:
+                ary[1]=1-(i-1)*0.2
+                break
+            elif state[now[0]+i*right[0]][now[1]+i*right[1]]==1:
+                ary[1]=1-(i-1)*0.2
+                break
+
+
+        for i in range(1,6):
+            if now[1]+i*left[1]>=20 or now[1]+i*left[1]<0 or now[0]+i*left[0]>=20 or now[0]+i*left[0]<0:
+                ary[2]=1-(i-1)*0.2
+                break;
+            elif state[now[0]+i*left[0]][now[1]+i*left[1]]==1:
+                ary[2]=1-(i-1)*0.2
+                break;
+        '''
+        for i in range(1,6):
+            if now[0]-i<0 or state[now[0]-i][now[1]]==1:
+                ary[3]=1-(i-1)*0.2
+                break;
+        
+        if(now[0]<target[0]):
+            ary[4]=1
+        if(now[0]>target[0]):
+            ary[5]=1
+        if(now[1]<target[1]):
+            ary[6]=1
+        if(now[1]>target[1]):
+            ary[7]=1
+
+        ary[8]=(abs(now[0]-target[0])+abs(now[1]-target[1]))/40
+        ary[9]=(1 if dir[0]==1 else 0)
+        ary[10]=(1 if dir[0]==-1 else 0)
+        ary[11]=(1 if dir[1]==1 else 0)
+        ary[12]=(1 if dir[1]==-1 else 0)
+        '''
+
+        if (np.array(target)-np.array(now)).dot(right)>0:
+            ary[3]=1
+        if (np.array(target)-np.array(now)).dot(left)>0:
+            ary[4]=1
+        if (np.array(target)-np.array(now)).dot(right)==0 and (np.array(target)-np.array(now)).dot(dir)>0:
+            ary[5]=1
 
         return ary
 
     def init_make_model(self):
-        weight0 = np.random.rand(402, 512) * 0.1
-        weight1 = np.zeros(512)
-        weight2 = np.random.rand(512, 4) * 0.05
-        weight3 = np.zeros(4)
+        weight0 = np.random.rand(self.input_node, self.hidden_node) * 0.1
+        weight1 = np.zeros(self.hidden_node)
+        weight2 = np.random.rand(self.hidden_node, self.output_node) * 0.05
+        weight3 = np.zeros(self.output_node)
         weights = np.array([weight0, weight1, weight2, weight3])
         return weights
 
 
-    def predict_model(self,weights,que,remain_move,target,length):
+    def predict_model(self,weights,now,state,target,dir):
+
         self.model.set_weights(weights)
-
-        input_data=self.refine_input(que,remain_move,target,length)
-        input_data=input_data.reshape(-1,402)
+        input_data=self.refine_input(now,state,target,dir)
+        input_data=input_data.reshape(-1,self.input_node)
         pred=self.model.predict(input_data)
-
         return pred
 
     def genetic_algorithm(self,step):
         weights_list=[]
+
+        weights_by_step1=np.array([])
+        weights_by_step2 = np.array([])
 
         for i in range(self.K):
             weights_list.append(self.init_make_model())
@@ -110,10 +200,14 @@ class Neural():
             parent_list = []
             for i in range(self.K): #fit 누적값 저장
                 fit_val = self.fitting_function(weights_list[i])
+
                 sum_fit+=fit_val
                 fit_list.append(fit_val)
             print('1')
-            print(sum_fit)
+            print(max(fit_list))
+            np.append(weights_by_step1,[weights_list[np.argmax(fit_list)][0]])
+            np.append(weights_by_step2, [weights_list[np.argmax(fit_list)][2]])
+            np.argmax(fit_list)
             if sum_fit!=0:
                 for i in range(self.K):
                     fit_list[i]=fit_list[i]/sum_fit
@@ -122,6 +216,8 @@ class Neural():
             #상위 N개 자식 생성
             selected_list=[]
             m=0
+            random.seed(datetime.datetime.now())
+
             while(m<self.N):
                 parent_idx=random.choices(range(0,self.K),weights=fit_list)
                 if parent_idx[0] not in selected_list:
@@ -130,18 +226,20 @@ class Neural():
                     m+=1
 
             print('3')
-            cross_prob=0.8
-            mutate_prob=0.07
+            cross_prob=0.5
+            mutate_prob=0.05
             child_list=[]
 
             #2개의 자식 선택 -> 교차
             for i in range(self.K):
-                parent_idx=np.random.choice(self.N,2 ,replace=False)
-                parent_1=parent_list[parent_idx[0]]
-                parent_2=parent_list[parent_idx[1]]
-                #print("C")
-                child=self.crossover(parent_1,parent_2,cross_prob)
-
+                if random.random()<cross_prob:
+                    parent_idx=np.random.choice(self.N,2 ,replace=False)
+                    parent_1=parent_list[parent_idx[0]]
+                    parent_2=parent_list[parent_idx[1]]
+                    #print("C")
+                    child=self.crossover(parent_1,parent_2,0.8)
+                else:
+                    child=parent_list[random.randrange(0,self.N)]
                 if np.random.random() < mutate_prob:
                     child = self.mutation1(child)
                 if np.random.random() < mutate_prob:
@@ -151,32 +249,34 @@ class Neural():
 
             print('4')
             weights_list=copy.deepcopy(child_list)
-            print(len(weights_list))
+            print(f"step : {k}-----------------------")
 
         print('end')
+        np.save('weights1',weights_by_step1)
+        np.save('weights2', weights_by_step2)
         return weights_list
 
     def mutation1(self,child):
         #print("A")
-        randpos=np.random.choice(402*512,2,replace=False)
+        randpos=np.random.choice(self.input_node*self.hidden_node,2,replace=False)
         #print("A")
-        tem=copy.deepcopy(child[0][randpos[0]%402][int(randpos[0]/402)])
+        tem=copy.deepcopy(child[0][randpos[0]%self.input_node][int(randpos[0]/self.input_node)])
         #print("A")
-        child[0][randpos[0]%402][int(randpos[0]/402)]=copy.deepcopy(child[0][randpos[1]%402][int(randpos[1]/402)])
+        child[0][randpos[0]%self.input_node][int(randpos[0]/self.input_node)]=copy.deepcopy(child[0][randpos[1]%self.input_node][int(randpos[1]/self.input_node)])
         #print("A")
-        child[0][randpos[1]%402][int(randpos[1]/402)]=tem
+        child[0][randpos[1]%self.input_node][int(randpos[1]/self.input_node)]=tem
         #print("A")
         return child
 
     def mutation2(self,child):
         #print("B")
-        randpos=np.random.choice(4*512,2,replace=False)
+        randpos=np.random.choice(self.output_node*self.hidden_node,2,replace=False)
         #print("B")
-        tem=copy.deepcopy(child[2][randpos[0]%512][int(randpos[0]/512)])
+        tem=copy.deepcopy(child[2][randpos[0]%self.hidden_node][int(randpos[0]/self.hidden_node)])
         #print("B")
-        child[2][randpos[0]%512][int(randpos[0]/512)]=copy.deepcopy(child[2][randpos[1]%512][int(randpos[1]/512)])
+        child[2][randpos[0]%self.hidden_node][int(randpos[0]/self.hidden_node)]=copy.deepcopy(child[2][randpos[1]%self.hidden_node][int(randpos[1]/self.hidden_node)])
         #print("B")
-        child[2][randpos[1]%512][int(randpos[1]/512)]=tem
+        child[2][randpos[1]%self.hidden_node][int(randpos[1]/self.hidden_node)]=tem
         #print("B")
         return child
 

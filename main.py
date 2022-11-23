@@ -130,7 +130,7 @@ class MyApp(QWidget):
         self.ne=Neural()
         #print(self.state)
         #self.ne.init_make_model(self.que,self.remain_move,self.target,self.len)
-        self.ne.genetic_algorithm(30)
+        self.ne.genetic_algorithm(10)
 
     def lose_check(self):
         self.remain_move-=1
