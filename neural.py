@@ -7,7 +7,7 @@ import datetime
 class Neural():
     def __init__(self):
         self.K=30
-        self.N=7
+        self.N=6
         self.input_node=6
         self.hidden_node=48
         self.output_node=3
@@ -26,7 +26,7 @@ class Neural():
         dir = np.array([1, 0])
         state = []
         score = 0
-        remain_move = 300
+        remain_move = 200
         additional=0
         target = [random.randrange(0, 20), random.randrange(0, 20)]
 
@@ -86,7 +86,7 @@ class Neural():
             elif now[0] + dir[0] == target[0] and now[1] + dir[1] == target[1]:  # target에 도착
 
                 length += 1
-                remain_move = 300
+                remain_move = 200
                 score+=15
                 state[now[0] + dir[0]][now[1] + dir[1]] = 1
                 while state[target[0]][target[1]] != 0:
@@ -182,14 +182,14 @@ class Neural():
         self.model.set_weights(weights)
         input_data=self.refine_input(now,state,target,dir)
         input_data=input_data.reshape(-1,self.input_node)
-        pred=self.model.predict(input_data)
+        pred=self.model.predict(input_data,verbose=0)
         return pred
 
     def genetic_algorithm(self,step):
         weights_list=[]
 
-        weights_by_step1=np.array([])
-        weights_by_step2 = np.array([])
+        weights_by_step1=[]
+        weights_by_step2 = []
 
         for i in range(self.K):
             weights_list.append(self.init_make_model())
@@ -200,19 +200,21 @@ class Neural():
             parent_list = []
             for i in range(self.K): #fit 누적값 저장
                 fit_val = self.fitting_function(weights_list[i])
-
+                print(f"step {k} : [{i}번째 부모 test]  fit_val : {fit_val}")
                 sum_fit+=fit_val
                 fit_list.append(fit_val)
-            print('1')
+
             print(max(fit_list))
-            np.append(weights_by_step1,[weights_list[np.argmax(fit_list)][0]])
-            np.append(weights_by_step2, [weights_list[np.argmax(fit_list)][2]])
+
+            weights_by_step1.append(weights_list[np.argmax(fit_list)][0])
+            weights_by_step2.append(weights_list[np.argmax(fit_list)][2])
+
             np.argmax(fit_list)
             if sum_fit!=0:
                 for i in range(self.K):
                     fit_list[i]=fit_list[i]/sum_fit
 
-            print('2')
+            #print('2')
             #상위 N개 자식 생성
             selected_list=[]
             m=0
@@ -225,9 +227,9 @@ class Neural():
                     selected_list.append(parent_idx[0])
                     m+=1
 
-            print('3')
-            cross_prob=0.5
-            mutate_prob=0.05
+            #print('3')
+            cross_prob=0.3
+            mutate_prob=0.07
             child_list=[]
 
             #2개의 자식 선택 -> 교차
@@ -247,7 +249,7 @@ class Neural():
 
                 child_list.append(child)
 
-            print('4')
+            #print('4')
             weights_list=copy.deepcopy(child_list)
             print(f"step : {k}-----------------------")
 
