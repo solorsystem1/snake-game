@@ -146,8 +146,8 @@ class MyApp(QWidget):
         vbox_1.addWidget(self.score_label)
         vbox_1.addWidget(self.remain_label)
 
-        btnTest=QPushButton("test")
-        btnLoad=QPushButton("load model")
+        btnTest=QPushButton("학습")
+        btnLoad=QPushButton("모델 테스트")
         btnTest.clicked.connect(self.btn_clicked)
         btnLoad.clicked.connect(self.btn_load_model_thread)
 
@@ -287,34 +287,7 @@ class MyApp(QWidget):
     def score_update(self,sc):
         self.score+=sc
         self.score_label.setText(f"Score\n{self.score}")
-    '''
-    def update(self,i,j,color):
-        Thread(target=self.update1(i,j,color)).start()
-    def update1(self,i,j,color):
-        
-        for i in range(20):
-            for j in range(20):
-                if self.state[i][j]==0:
-                    self.view.rect[i][j].setBrush(QColor(0,0,0))
 
-        for i in range(20):
-            for j in range(20):
-                if self.target[0]==i and self.target[1]==j:
-                    self.view.rect[i][j].setBrush(QColor(150, 150, 0))
-                elif self.state[i][j]==1 or (self.now[0]==i and self.now[1]==j):
-                    self.view.rect[i][j].setBrush(QColor(0,150,150))
-
-        
-        if color=='red':
-            self.view.rect[i][j].setBrush(QColor(150,150,0))
-        elif color=='black':
-            self.view.rect[i][j].setBrush(QColor(0,0,0))
-        elif color=='blue':
-            self.view.rect[i][j].setBrush(QColor(0,150,150))
-
-        self.score_label.setText(f"Score\n{self.score}")
-        self.remain_label.setText(f"남은 움직임\n{self.remain_move}")
-    '''
 app= QApplication(sys.argv)
 win=MyApp()
 sys.exit(app.exec_())

@@ -25,7 +25,7 @@ class Neural():
         init_remain_move =100
         now = [random.randrange(0, 20), random.randrange(0, 20)]
         que = [[0, 0]]
-        length = 5
+        length = 80
         dir = np.array([1, 0])
         state = []
         score = 0
@@ -42,17 +42,6 @@ class Neural():
         que.append(copy.deepcopy(now))
 
         now_block=[random.randrange(0,20),random.randrange(0,20)]
-        '''
-        for i in range(0,10):
-            while state[now_block[0]][now_block[1]] != 0:
-                now_block=[random.randrange(0,20),random.randrange(0,20)]
-            state[now_block[0]][now_block[1]]=1
-        '''
-        '''
-        for i in range(0,5):
-            for j in range(0,5):
-                state[4*i][4*j]=1
-        '''
 
         state[0][10]=1
         state[0][19]=1
@@ -105,17 +94,6 @@ class Neural():
 
                 while state[target[0]][target[1]] != 0:
                     target = [random.randrange(0, 20), random.randrange(0, 20)]
-                # else:
-                #     while state[target[0]][target[1]] != 0:
-                #         if random.random()<0.25:
-                #             target = [random.randrange(0, 20), 0]
-                #         elif random.random()<0.5:
-                #             target = [random.randrange(0, 20), 19]
-                #         elif random.random()<0.75:
-                #             target = [0,random.randrange(0, 20)]
-                #         elif random.random()<1:
-                #             target = [19,random.randrange(0, 20)]
-
 
             else:
                 state[now[0] + dir[0]][now[1] + dir[1]] = 1
@@ -144,13 +122,6 @@ class Neural():
             elif state[now[0] + i * dir[0]][now[1] + i * dir[1]] == 1:
                 ary[0] = 1 - 0.1 * (1 - i)
                 break
-        '''
-        for i in range(1,6):
-            if not (now[1] + i * dir[1] >= 20 or now[1] + i * dir[1] < 0 or now[0] + i * dir[0] >= 20 or now[0] + i * dir[0] < 0):
-                if state[now[0] + i * dir[0]][now[1] + i * dir[1]] == 1:
-                    ary[1] = 1 - 0.2 * (1 - i)
-                    break
-        '''
 
         for i in range(1, 11):
             if now[1] + i * right[1] >= 20 or now[1] + i * right[1] < 0 or now[0] + i * right[0] >= 20 or now[0] + i * \
@@ -160,13 +131,6 @@ class Neural():
             elif state[now[0] + i * right[0]][now[1] + i * right[1]] == 1:
                     ary[1] = 1 - 0.1 * (1 - i)
                     break
-        '''
-        for i in range(1,6):
-            if not(now[1] + i * right[1] >= 20 or now[1] + i * right[1] < 0 or now[0] + i * right[0] >= 20 or now[0] + i * right[0] < 0):
-                if state[now[0] + i * right[0]][now[1] + i * right[1]] == 1:
-                    ary[3] = 1 - 0.2 * (1 - i)
-                    break
-        '''
         for i in range(1, 11):
             if now[1] + i * left[1] >= 20 or now[1] + i * left[1] < 0 or now[0] + i * left[0] >= 20 or now[0] + i * \
                     left[0] < 0:
@@ -175,13 +139,6 @@ class Neural():
             elif state[now[0] + i * left[0]][now[1] + i * left[1]] == 1:
                 ary[2] = 1 - 0.1 * (1 - i)
                 break
-        '''
-        for i in range(1, 6):
-            if not (now[1] + i * left[1] >= 20 or now[1] + i * left[1] < 0 or now[0] + i * left[0] >= 20 or now[0] + i * left[0] < 0):
-                if state[now[0] + i * left[0]][now[1] + i * left[1]] == 1:
-                    ary[5] = 1 - 0.2 * (1 - i)
-                    break
-        '''
 
         if (np.array(target) - np.array(now)).dot(right) > 0:
             ary[3] = 1
@@ -190,7 +147,6 @@ class Neural():
         if (np.array(target) - np.array(now)).dot(right) == 0 and (np.array(target) - np.array(now)).dot(dir) > 0:
             ary[5] = 1
 
-        #ary[6] = remain / 200
         return ary
 
     def refine_input1(self, now, state, target, dir, remain):
