@@ -39,6 +39,17 @@ class MyApp(QWidget):
     def __init__(self):
         super().__init__()
         self.ne = Neural()
+
+        try:
+            self.last1=np.load('last.npy',allow_pickle=True)
+            self.we1=np.load('weights1.npy')
+            self.we2=np.load('weights2.npy')
+            self.we3=np.load('weights3.npy')
+        except FileNotFoundError:
+            self.last1=0
+            self.we1=0
+            self.we2=0
+            self.we3=0
         self.initUI()
         self.show()
 
@@ -77,27 +88,37 @@ class MyApp(QWidget):
         btn.start()
 
     def btn_load_model(self):
-
+        step=len(self.we1)-1
+        print(np.shape(self.we1))
         fname1 = np.load('weights1.npy')
         fname2 = np.load('weights2.npy')
+        fname3 = np.load('weights3.npy')
 
-        weight0 = fname1[5]
-        weight1 = np.zeros(self.ne.hidden_node)
-        weight2 = fname2[5]
-        weight3 = np.zeros(self.ne.output_node)
-        weights = np.array([weight0, weight1, weight2, weight3])
+        weight0 = fname1[step]
+        weight1 = np.zeros(self.ne.hidden_node1)
+        weight2 = fname2[step]
+        weight3 = np.zeros(self.ne.hidden_node2)
+        weight4 = fname3[step]
+        weight5 = np.zeros(self.ne.output_node)
+        weights = np.array([weight0, weight1, weight2, weight3,weight4,weight5])
 
         while(1):
-            pred=self.ne.predict_model(weights,self.now,self.state,self.target,self.dir)
+            pred=self.ne.predict_model(weights,self.now,self.state,self.target,self.dir,self.remain_move)
             right=np.array(self.dir)@np.array([[0,-1],[1,0]])
             left = np.array(self.dir) @ np.array([[0, 1], [-1, 0]])
 
-            if np.argmax(pred) == 0:
+            if np.argmax(pred)==1:
+                self.dir=self.dir
+            elif np.argmax(pred) == 0:
                 self.dir=right
-            elif np.argmax(pred)==1:
+            elif np.argmax(pred)==2:
                 self.dir=left
 
             self.AutokeyPressEvent(self.dir)
+            if self.flag==0:
+                break
+
+        self.clear()
 
 
     def initUI(self):
@@ -193,9 +214,7 @@ class MyApp(QWidget):
 
 
     def btn_clicked(self):
-        print(self.state)
-        self.ne.init_make_model(self.que,self.remain_move,self.target,self.len)
-        self.ne.genetic_algorithm(20)
+        self.ne.genetic_algorithm(200,1,self.last1,self.we1,self.we2,self.we3)
 
     def lose_check(self):
         self.remain_move-=1
@@ -225,7 +244,7 @@ class MyApp(QWidget):
             self.state[self.now[0]+self.dir[0]][self.now[1]+self.dir[1]] = 1
 
     def lose_game(self):
-        #self.flag = 1
+        self.flag = 0
         self.score_update(0)
         reply = QMessageBox.question(self, '패배', f'score : {self.score}', QMessageBox.Yes)
         if reply == QMessageBox.Yes:
@@ -240,7 +259,7 @@ class MyApp(QWidget):
     def clear(self):
         self.now=[random.randrange(0,20),random.randrange(0,20)]
         self.que=[[0,0]]
-        self.len=2
+        self.len=1
         self.dir=[1,0]
         self.state=[]
         self.flag=1
